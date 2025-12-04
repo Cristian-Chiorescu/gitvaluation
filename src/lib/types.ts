@@ -8,43 +8,43 @@ export interface DeveloperArchetype {
 }
 
 export const ARCHETYPES: Record<string, DeveloperArchetype> = {
-  THE_ARCHITECT: {
-    name: "The Architect",
+  ARCHITECT: {
+    name: "Architect",
     description: "Designs systems, makes foundational decisions",
     color: "emerald",
   },
-  THE_SURGEON: {
-    name: "The Surgeon",
+  SURGEON: {
+    name: "Surgeon",
     description: "Precise, high-impact changes with minimal footprint",
     color: "emerald",
   },
-  THE_JANITOR: {
-    name: "The Janitor",
+  JANITOR: {
+    name: "Janitor",
     description: "Cleans up technical debt, improves maintainability",
     color: "blue",
   },
-  THE_FEATURE_FACTORY: {
-    name: "The Feature Factory",
+  FEATURE_FACTORY: {
+    name: "Feature Factory",
     description: "Churns out features, quantity over quality",
     color: "amber",
   },
-  THE_FIREFIGHTER: {
-    name: "The Firefighter",
+  FIREFIGHTER: {
+    name: "Firefighter",
     description: "Fixes bugs reactively, often their own",
     color: "amber",
   },
-  THE_COASTER: {
-    name: "The Coaster",
+  COASTER: {
+    name: "Coaster",
     description: "Minimal impact, surface-level changes",
     color: "rose",
   },
-  THE_PERFECTIONIST: {
-    name: "The Perfectionist",
+  PERFECTIONIST: {
+    name: "Perfectionist",
     description: "Over-engineers, refactors endlessly",
     color: "amber",
   },
-  THE_RISING_STAR: {
-    name: "The Rising Star",
+  RISING_STAR: {
+    name: "Rising Star",
     description: "Improving rapidly, high potential",
     color: "purple",
   },

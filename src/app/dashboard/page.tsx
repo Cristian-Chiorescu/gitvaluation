@@ -93,10 +93,7 @@ function getGPABgColor(gpa: number) {
 }
 
 function getArchetypeColor(archetype: string) {
-  const key = archetype
-    .toUpperCase()
-    .replace(/\s+/g, "_")
-    .replace(/^THE_/, "THE_");
+  const key = archetype.toUpperCase().replace(/\s+/g, "_");
   const info = ARCHETYPES[key];
   if (!info) return "text-muted-foreground";
 
@@ -117,10 +114,7 @@ function getArchetypeColor(archetype: string) {
 }
 
 function getArchetypeBgColor(archetype: string) {
-  const key = archetype
-    .toUpperCase()
-    .replace(/\s+/g, "_")
-    .replace(/^THE_/, "THE_");
+  const key = archetype.toUpperCase().replace(/\s+/g, "_");
   const info = ARCHETYPES[key];
   if (!info) return "bg-muted/50";
 

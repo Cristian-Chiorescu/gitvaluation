@@ -69,10 +69,13 @@ export default function LandingPage() {
       {/* Background effects */}
       <div className="absolute inset-0 bg-grid-pattern opacity-50" />
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/20 via-transparent to-rose-950/10" />
-      
+
       {/* Animated orbs */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "3s" }} />
+      <div
+        className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl animate-float"
+        style={{ animationDelay: "3s" }}
+      />
 
       {/* Header */}
       <header className="relative z-10 border-b border-border/50 backdrop-blur-sm">
@@ -83,19 +86,31 @@ export default function LandingPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight">GitValuation</h1>
-              <p className="text-xs text-muted-foreground">by Volaris</p>
+              <p className="text-xs text-muted-foreground">
+                AI Analysis Dashboard
+              </p>
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="#features"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Features
             </a>
-            <a href="#methodology" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="#methodology"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Methodology
             </a>
-            <Button variant="outline" size="sm" className="border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/10">
+            {/* <Button
+              variant="outline"
+              size="sm"
+              className="border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/10"
+            >
               Sign In
-            </Button>
+            </Button> */}
           </nav>
         </div>
       </header>
@@ -120,8 +135,9 @@ export default function LandingPage() {
 
             {/* Subheadline */}
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Audit engineering teams with precision. GitValuation analyzes contribution patterns 
-              to identify key architects, assess team health, and quantify acquisition risk.
+              Audit engineering teams with precision. GitValuation analyzes
+              contribution patterns to identify key architects, assess team
+              health, and quantify acquisition risk.
             </p>
 
             {/* Search Input */}
@@ -169,8 +185,12 @@ export default function LandingPage() {
             <div className="flex items-center justify-center gap-12 pt-12 border-t border-border/50 mt-12">
               {stats.map((stat) => (
                 <div key={stat.label} className="text-center">
-                  <div className="text-3xl font-bold text-gradient-emerald">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  <div className="text-3xl font-bold text-gradient-emerald">
+                    {stat.value}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </div>
@@ -184,8 +204,8 @@ export default function LandingPage() {
               Beyond Commit Counts
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Traditional metrics miss the full picture. We analyze patterns that reveal 
-              true engineering leadership and potential risks.
+              Traditional metrics miss the full picture. We analyze patterns
+              that reveal true engineering leadership and potential risks.
             </p>
           </div>
 
@@ -197,7 +217,9 @@ export default function LandingPage() {
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-transparent to-transparent group-hover:from-emerald-500/5 group-hover:to-transparent rounded-2xl transition-all duration-300" />
                 <div className="relative space-y-4">
-                  <div className={`w-12 h-12 rounded-xl ${feature.bgColor} flex items-center justify-center`}>
+                  <div
+                    className={`w-12 h-12 rounded-xl ${feature.bgColor} flex items-center justify-center`}
+                  >
                     <feature.icon className={`w-6 h-6 ${feature.color}`} />
                   </div>
                   <h3 className="text-xl font-semibold">{feature.title}</h3>
@@ -211,30 +233,56 @@ export default function LandingPage() {
         </section>
 
         {/* Methodology Section */}
-        <section id="methodology" className="container mx-auto px-6 py-24 border-t border-border/50">
+        <section
+          id="methodology"
+          className="container mx-auto px-6 py-24 border-t border-border/50"
+        >
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
               <h2 className="text-3xl lg:text-4xl font-bold">
                 The Strategic Impact Metric
               </h2>
               <p className="text-muted-foreground leading-relaxed">
-                Our proprietary algorithm weights contributions based on their lasting value 
-                to the codebase. We distinguish between architectural decisions, feature 
-                development, maintenance work, and technical debt.
+                Our proprietary algorithm weights contributions based on their
+                lasting value to the codebase. We distinguish between
+                architectural decisions, feature development, maintenance work,
+                and technical debt.
               </p>
               <div className="space-y-4">
                 {[
-                  { label: "Architectural Changes", desc: "System design decisions that shape the codebase", icon: Target, color: "emerald" },
-                  { label: "Maintenance Work", desc: "Bug fixes, updates, and incremental improvements", icon: BarChart3, color: "amber" },
-                  { label: "Risk Indicators", desc: "Code churn, reverts, and dependency patterns", icon: Activity, color: "rose" },
+                  {
+                    label: "Architectural Changes",
+                    desc: "System design decisions that shape the codebase",
+                    icon: Target,
+                    color: "emerald",
+                  },
+                  {
+                    label: "Maintenance Work",
+                    desc: "Bug fixes, updates, and incremental improvements",
+                    icon: BarChart3,
+                    color: "amber",
+                  },
+                  {
+                    label: "Risk Indicators",
+                    desc: "Code churn, reverts, and dependency patterns",
+                    icon: Activity,
+                    color: "rose",
+                  },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-border/50">
-                    <div className={`w-10 h-10 rounded-lg bg-${item.color}-500/10 flex items-center justify-center flex-shrink-0`}>
+                  <div
+                    key={item.label}
+                    className="flex items-start gap-4 p-4 rounded-xl bg-card/50 border border-border/50"
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-lg bg-${item.color}-500/10 flex items-center justify-center flex-shrink-0`}
+                    >
                       <item.icon className={`w-5 h-5 text-${item.color}-400`} />
                     </div>
                     <div>
                       <h4 className="font-semibold">{item.label}</h4>
-                      <p className="text-sm text-muted-foreground">{item.desc}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.desc}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -245,21 +293,35 @@ export default function LandingPage() {
               <div className="relative p-8 rounded-2xl bg-card border border-border">
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Impact Score Distribution</span>
-                    <span className="text-xs text-muted-foreground">Last 90 days</span>
+                    <span className="text-sm font-medium">
+                      Impact Score Distribution
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Last 90 days
+                    </span>
                   </div>
                   {/* Mock chart visualization */}
                   <div className="space-y-3">
                     {[
-                      { label: "Core Features", value: 35, color: "bg-emerald-500" },
+                      {
+                        label: "Core Features",
+                        value: 35,
+                        color: "bg-emerald-500",
+                      },
                       { label: "Bug Fixes", value: 25, color: "bg-amber-500" },
                       { label: "Refactoring", value: 18, color: "bg-blue-500" },
                       { label: "Testing", value: 12, color: "bg-purple-500" },
-                      { label: "Documentation", value: 10, color: "bg-rose-500" },
+                      {
+                        label: "Documentation",
+                        value: 10,
+                        color: "bg-rose-500",
+                      },
                     ].map((item) => (
                       <div key={item.label} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">{item.label}</span>
+                          <span className="text-muted-foreground">
+                            {item.label}
+                          </span>
                           <span className="font-mono">{item.value}%</span>
                         </div>
                         <div className="h-2 bg-secondary rounded-full overflow-hidden">
@@ -286,8 +348,8 @@ export default function LandingPage() {
                 Ready to Analyze Your Target?
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-                Get comprehensive engineering team insights in minutes. 
-                Make data-driven acquisition decisions.
+                Get comprehensive engineering team insights in minutes. Make
+                data-driven acquisition decisions.
               </p>
               <Button
                 size="lg"
@@ -308,7 +370,7 @@ export default function LandingPage() {
             <GitBranch className="w-4 h-4" />
             <span>GitValuation</span>
             <span>•</span>
-            <span>© 2024 Volaris Group</span>
+            <span>© 2025 Cristian Chiorescu</span>
           </div>
           <div className="text-sm text-muted-foreground">
             Engineering Due Diligence Platform

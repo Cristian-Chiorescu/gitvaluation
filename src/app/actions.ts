@@ -10,43 +10,43 @@ import {
 
 // Local copy of ARCHETYPES for server-side use (cannot import objects in "use server" files)
 const ARCHETYPES: Record<string, DeveloperArchetype> = {
-  THE_ARCHITECT: {
-    name: "The Architect",
+  ARCHITECT: {
+    name: "Architect",
     description: "Designs systems, makes foundational decisions",
     color: "emerald",
   },
-  THE_SURGEON: {
-    name: "The Surgeon",
+  SURGEON: {
+    name: "Surgeon",
     description: "Precise, high-impact changes with minimal footprint",
     color: "emerald",
   },
-  THE_JANITOR: {
-    name: "The Janitor",
+  JANITOR: {
+    name: "Janitor",
     description: "Cleans up technical debt, improves maintainability",
     color: "blue",
   },
-  THE_FEATURE_FACTORY: {
-    name: "The Feature Factory",
+  FEATURE_FACTORY: {
+    name: "Feature Factory",
     description: "Churns out features, quantity over quality",
     color: "amber",
   },
-  THE_FIREFIGHTER: {
-    name: "The Firefighter",
+  FIREFIGHTER: {
+    name: "Firefighter",
     description: "Fixes bugs reactively, often their own",
     color: "amber",
   },
-  THE_COASTER: {
-    name: "The Coaster",
+  COASTER: {
+    name: "Coaster",
     description: "Minimal impact, surface-level changes",
     color: "rose",
   },
-  THE_PERFECTIONIST: {
-    name: "The Perfectionist",
+  PERFECTIONIST: {
+    name: "Perfectionist",
     description: "Over-engineers, refactors endlessly",
     color: "amber",
   },
-  THE_RISING_STAR: {
-    name: "The Rising Star",
+  RISING_STAR: {
+    name: "Rising Star",
     description: "Improving rapidly, high potential",
     color: "purple",
   },
@@ -78,14 +78,14 @@ Analyze each commit diff and assign a grade (0-100) based on:
    - Large additions without clear purpose = NEGATIVE VALUE
 
 Developer Archetypes to assign:
-- "The Architect": Designs systems, makes foundational decisions that scale
-- "The Surgeon": Precise, high-impact changes with minimal code footprint  
-- "The Janitor": Valuable! Cleans up technical debt, improves maintainability
-- "The Feature Factory": Churns out features, quantity over quality concerns
-- "The Firefighter": Fixes bugs reactively, often fixing issues they created
-- "The Coaster": Minimal strategic impact, surface-level changes only
-- "The Perfectionist": Over-engineers solutions, endless refactoring
-- "The Rising Star": Shows improvement trajectory, high potential
+- "Architect": Designs systems, makes foundational decisions that scale
+- "Surgeon": Precise, high-impact changes with minimal code footprint  
+- "Janitor": Valuable! Cleans up technical debt, improves maintainability
+- "Feature Factory": Churns out features, quantity over quality concerns
+- "Firefighter": Fixes bugs reactively, often fixing issues they created
+- "Coaster": Minimal strategic impact, surface-level changes only
+- "Perfectionist": Over-engineers solutions, endless refactoring
+- "Rising Star": Shows improvement trajectory, high potential
 
 IMPORTANT: Be ruthlessly honest. Private equity needs accurate assessments, not feel-good evaluations. Look for:
 - Patterns of introducing then fixing bugs (red flag)
@@ -146,7 +146,7 @@ ${JSON.stringify(commitSummaries, null, 2)}
 Respond with a JSON object in this exact format:
 {
   "impactGPA": <number 0.0-4.0>,
-  "archetype": "<one of: The Architect, The Surgeon, The Janitor, The Feature Factory, The Firefighter, The Coaster, The Perfectionist, The Rising Star>",
+  "archetype": "<one of: Architect, Surgeon, Janitor, Feature Factory, Firefighter, Coaster, Perfectionist, Rising Star>",
   "assessment": "<one-line assessment, max 100 chars>",
   "confidenceScore": <number 0-100>,
   "complexityScore": <number 0-100>,
@@ -203,9 +203,8 @@ Respond with a JSON object in this exact format:
       // Map archetype string to archetype info
       const archetypeKey = analysis.archetype
         .toUpperCase()
-        .replace(/\s+/g, "_")
-        .replace(/^THE_/, "THE_");
-      const archetypeInfo = ARCHETYPES[archetypeKey] || ARCHETYPES.THE_COASTER;
+        .replace(/\s+/g, "_");
+      const archetypeInfo = ARCHETYPES[archetypeKey] || ARCHETYPES.COASTER;
 
       // Calculate strategic impact from component scores
       const strategicImpact = Math.round(
@@ -291,7 +290,7 @@ ${JSON.stringify(commitSummaries, null, 2)}
 Respond with a JSON object in this exact format (no markdown, just raw JSON):
 {
   "impactGPA": <number 0.0-4.0>,
-  "archetype": "<one of: The Architect, The Surgeon, The Janitor, The Feature Factory, The Firefighter, The Coaster, The Perfectionist, The Rising Star>",
+  "archetype": "<one of: Architect, Surgeon, Janitor, Feature Factory, Firefighter, Coaster, Perfectionist, Rising Star>",
   "assessment": "<one-line assessment, max 100 chars>",
   "confidenceScore": <number 0-100>,
   "complexityScore": <number 0-100>,
@@ -352,9 +351,8 @@ Respond with a JSON object in this exact format (no markdown, just raw JSON):
       // Map archetype string to archetype info
       const archetypeKey = analysis.archetype
         .toUpperCase()
-        .replace(/\s+/g, "_")
-        .replace(/^THE_/, "THE_");
-      const archetypeInfo = ARCHETYPES[archetypeKey] || ARCHETYPES.THE_COASTER;
+        .replace(/\s+/g, "_");
+      const archetypeInfo = ARCHETYPES[archetypeKey] || ARCHETYPES.COASTER;
 
       // Calculate strategic impact from component scores
       const strategicImpact = Math.round(
@@ -448,8 +446,8 @@ export async function analyzeMockRepository(): Promise<AnalysisResult> {
         name: "Sarah Chen",
         email: "sarah.chen@acme.corp",
         impactGPA: 3.87,
-        archetype: "The Architect",
-        archetypeInfo: ARCHETYPES.THE_ARCHITECT,
+        archetype: "Architect",
+        archetypeInfo: ARCHETYPES.ARCHITECT,
         assessment:
           "High strategic value; designed core authentication system and API gateway.",
         commitCount: 47,
@@ -477,8 +475,8 @@ export async function analyzeMockRepository(): Promise<AnalysisResult> {
         name: "Marcus Johnson",
         email: "marcus.j@acme.corp",
         impactGPA: 3.52,
-        archetype: "The Surgeon",
-        archetypeInfo: ARCHETYPES.THE_SURGEON,
+        archetype: "Surgeon",
+        archetypeInfo: ARCHETYPES.SURGEON,
         assessment:
           "Precise fixes; eliminated 3 critical security vulnerabilities with minimal code.",
         commitCount: 38,
@@ -506,8 +504,8 @@ export async function analyzeMockRepository(): Promise<AnalysisResult> {
         name: "Aisha Patel",
         email: "aisha.p@acme.corp",
         impactGPA: 3.21,
-        archetype: "The Janitor",
-        archetypeInfo: ARCHETYPES.THE_JANITOR,
+        archetype: "Janitor",
+        archetypeInfo: ARCHETYPES.JANITOR,
         assessment:
           "Exceptional cleanup; deleted 4,200 lines of legacy code safely.",
         commitCount: 52,
@@ -535,8 +533,8 @@ export async function analyzeMockRepository(): Promise<AnalysisResult> {
         name: "David Mueller",
         email: "david.m@acme.corp",
         impactGPA: 2.84,
-        archetype: "The Feature Factory",
-        archetypeInfo: ARCHETYPES.THE_FEATURE_FACTORY,
+        archetype: "Feature Factory",
+        archetypeInfo: ARCHETYPES.FEATURE_FACTORY,
         assessment:
           "High output but concerning patterns; 40% of commits are bug fixes.",
         commitCount: 67,
@@ -564,8 +562,8 @@ export async function analyzeMockRepository(): Promise<AnalysisResult> {
         name: "Emma Wilson",
         email: "emma.w@acme.corp",
         impactGPA: 2.31,
-        archetype: "The Firefighter",
-        archetypeInfo: ARCHETYPES.THE_FIREFIGHTER,
+        archetype: "Firefighter",
+        archetypeInfo: ARCHETYPES.FIREFIGHTER,
         assessment:
           "Reactive pattern detected; 60% of bug fixes are for self-introduced issues.",
         commitCount: 45,
@@ -593,8 +591,8 @@ export async function analyzeMockRepository(): Promise<AnalysisResult> {
         name: "James O'Brien",
         email: "james.ob@acme.corp",
         impactGPA: 1.89,
-        archetype: "The Coaster",
-        archetypeInfo: ARCHETYPES.THE_COASTER,
+        archetype: "Coaster",
+        archetypeInfo: ARCHETYPES.COASTER,
         assessment:
           "Low strategic value; 70% of commits are documentation and formatting.",
         commitCount: 34,
