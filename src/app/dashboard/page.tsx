@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -242,7 +242,7 @@ function MiniReportCard({ gpa }: { gpa: number }) {
   );
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const searchParams = useSearchParams();
   const repoUrl = searchParams.get("repo");
 
@@ -1360,5 +1360,35 @@ export default function DashboardPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+// Loading fallback for Suspense
+function DashboardLoading() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="fixed inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-br from-emerald-950/10 via-transparent to-rose-950/5 pointer-events-none" />
+      <div className="relative text-center space-y-6">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/25">
+          <Brain className="w-10 h-10 text-white animate-pulse" />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-center gap-2 text-foreground font-medium">
+            <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+            <span>Loading dashboard...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Wrap with Suspense for useSearchParams
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardContent />
+    </Suspense>
   );
 }
