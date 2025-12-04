@@ -233,7 +233,7 @@ export default function DashboardPage() {
   const [expandedContributor, setExpandedContributor] = useState<string | null>(
     null
   );
-  const [sortBy, setSortBy] = useState<"gpa" | "impact" | "commits">("gpa");
+  const [sortBy, setSortBy] = useState<"gpa" | "risk" | "commits">("gpa");
   const [isLoading, setIsLoading] = useState(true);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
     null
@@ -291,11 +291,11 @@ export default function DashboardPage() {
   const sortedDevelopers = [...developers].sort((a, b) => {
     switch (sortBy) {
       case "gpa":
-        return b.impactGPA - a.impactGPA;
-      case "impact":
-        return b.strategicImpact - a.strategicImpact;
+        return b.impactGPA - a.impactGPA; // Highest GPA first
+      case "risk":
+        return a.impactGPA - b.impactGPA; // Lowest GPA (highest risk) first
       case "commits":
-        return b.commitCount - a.commitCount;
+        return b.commitCount - a.commitCount; // Most commits first
       default:
         return 0;
     }
@@ -513,8 +513,8 @@ export default function DashboardPage() {
               <span className="text-sm text-muted-foreground">Sort by:</span>
               <div className="flex gap-1">
                 {[
-                  { key: "gpa", label: "GPA" },
-                  { key: "impact", label: "Impact" },
+                  { key: "gpa", label: "Grade" },
+                  { key: "risk", label: "Risk" },
                   { key: "commits", label: "Commits" },
                 ].map((option) => (
                   <Button
@@ -522,7 +522,15 @@ export default function DashboardPage() {
                     variant={sortBy === option.key ? "secondary" : "ghost"}
                     size="sm"
                     onClick={() => setSortBy(option.key as typeof sortBy)}
-                    className="text-xs"
+                    className={`text-xs ${
+                      option.key === "gpa" && sortBy === "gpa"
+                        ? "text-emerald-400"
+                        : ""
+                    }${
+                      option.key === "risk" && sortBy === "risk"
+                        ? "text-rose-400"
+                        : ""
+                    }`}
                   >
                     {option.label}
                   </Button>
