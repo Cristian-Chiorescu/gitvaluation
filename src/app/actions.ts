@@ -2,6 +2,207 @@
 
 // Import types from utility files (non-server action exports)
 import { type CommitDiff } from "@/lib/git-parser";
+
+// GitHub API types
+interface GitHubPR {
+  number: number;
+  title: string;
+  user: {
+    login: string;
+  } | null;
+  created_at: string;
+  merged_at: string | null;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+}
+
+interface GitHubPRDetails {
+  number: number;
+  title: string;
+  user: {
+    login: string;
+    email?: string;
+  } | null;
+  created_at: string;
+  merged_at: string | null;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+}
+
+// Parse GitHub repo URL to extract owner and repo
+function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
+  // Handle various GitHub URL formats
+  const patterns = [
+    /github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?(?:\/.*)?$/,
+    /^([^\/]+)\/([^\/]+)$/, // owner/repo format
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return { owner: match[1], repo: match[2].replace(/\.git$/, "") };
+    }
+  }
+  return null;
+}
+
+// Fetch recent PRs from GitHub
+export async function fetchGitHubPRs(repoUrl: string): Promise<{
+  success: boolean;
+  commits?: CommitDiff[];
+  repoName?: string;
+  error?: string;
+}> {
+  const token = process.env.GITHUB_TOKEN;
+
+  if (!token) {
+    return {
+      success: false,
+      error: "GITHUB_TOKEN environment variable is not set",
+    };
+  }
+
+  const parsed = parseGitHubUrl(repoUrl);
+  if (!parsed) {
+    return {
+      success: false,
+      error:
+        "Invalid GitHub repository URL. Use format: https://github.com/owner/repo",
+    };
+  }
+
+  const { owner, repo } = parsed;
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github.v3+json",
+    "User-Agent": "GitValuation-App",
+  };
+
+  try {
+    // Fetch 10 most recent merged PRs
+    const prsResponse = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/pulls?state=closed&sort=updated&direction=desc&per_page=20`,
+      { headers }
+    );
+
+    if (!prsResponse.ok) {
+      if (prsResponse.status === 404) {
+        return { success: false, error: "Repository not found" };
+      }
+      if (prsResponse.status === 401 || prsResponse.status === 403) {
+        return {
+          success: false,
+          error: "GitHub authentication failed. Check your token.",
+        };
+      }
+      const errorText = await prsResponse.text();
+      return { success: false, error: `GitHub API error: ${errorText}` };
+    }
+
+    const allPRs: GitHubPR[] = await prsResponse.json();
+
+    // Filter to only merged PRs and take 10
+    const mergedPRs = allPRs.filter((pr) => pr.merged_at !== null).slice(0, 10);
+
+    if (mergedPRs.length === 0) {
+      return {
+        success: false,
+        error: "No merged pull requests found in this repository",
+      };
+    }
+
+    // Fetch details and diff for each PR
+    const commits: CommitDiff[] = [];
+
+    for (const pr of mergedPRs) {
+      try {
+        // Fetch PR details (to get additions/deletions)
+        const detailsResponse = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}`,
+          { headers }
+        );
+
+        if (!detailsResponse.ok) continue;
+
+        const prDetails: GitHubPRDetails = await detailsResponse.json();
+
+        // Fetch PR diff
+        const diffResponse = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}`,
+          {
+            headers: {
+              ...headers,
+              Accept: "application/vnd.github.v3.diff",
+            },
+          }
+        );
+
+        if (!diffResponse.ok) continue;
+
+        let diff = await diffResponse.text();
+
+        // Truncate diff to 1000 chars
+        if (diff.length > 1000) {
+          diff = diff.substring(0, 1000) + "\n... [truncated at 1000 chars]";
+        }
+
+        // Get author email from commits if available
+        let authorEmail = `${prDetails.user?.login || "unknown"}@github.com`;
+        try {
+          const commitsResponse = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}/commits?per_page=1`,
+            { headers }
+          );
+          if (commitsResponse.ok) {
+            const prCommits = await commitsResponse.json();
+            if (prCommits.length > 0 && prCommits[0].commit?.author?.email) {
+              authorEmail = prCommits[0].commit.author.email;
+            }
+          }
+        } catch {
+          // Use default email
+        }
+
+        commits.push({
+          sha: `PR-${pr.number}`,
+          author: prDetails.user?.login || "Unknown",
+          authorEmail,
+          date: prDetails.merged_at || prDetails.created_at,
+          message: prDetails.title,
+          diff,
+          filesChanged: prDetails.changed_files,
+          additions: prDetails.additions,
+          deletions: prDetails.deletions,
+        });
+      } catch (error) {
+        console.error(`Error fetching PR #${pr.number}:`, error);
+        // Continue with other PRs
+      }
+    }
+
+    if (commits.length === 0) {
+      return {
+        success: false,
+        error: "Could not fetch any PR data. Check repository permissions.",
+      };
+    }
+
+    return {
+      success: true,
+      commits,
+      repoName: `${owner}/${repo}`,
+    };
+  } catch (error) {
+    console.error("GitHub API error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to fetch from GitHub",
+    };
+  }
+}
 import {
   type DeveloperArchetype,
   type DeveloperAssessment,
@@ -96,6 +297,8 @@ IMPORTANT: Be ruthlessly honest. Private equity needs accurate assessments, not 
 Return your analysis as a valid JSON object.`;
 
 // Function to analyze diffs using OpenAI
+// Function to analyze diffs using OpenAI
+// Function to analyze diffs using OpenAI
 async function analyzeWithOpenAI(
   commits: CommitDiff[]
 ): Promise<DeveloperAssessment[]> {
@@ -117,13 +320,15 @@ async function analyzeWithOpenAI(
     }
     acc[key].commits.push(commit);
     return acc;
-  }, {} as Record<string, { name: string; email: string; commits: CommitDiff[] }>);
+  }, {} as Record<string, { name: string; email?: string; commits: CommitDiff[] }>);
 
   const assessments: DeveloperAssessment[] = [];
 
   // Analyze each developer's commits
   for (const [, authorData] of Object.entries(commitsByAuthor)) {
     const { name, email, commits: authorCommits } = authorData;
+
+    if (!authorCommits.length) continue;
 
     // Prepare commit summaries for the AI (truncate large diffs)
     const commitSummaries = authorCommits.map((c) => ({
@@ -134,20 +339,25 @@ async function analyzeWithOpenAI(
       deletions: c.deletions,
       filesChanged: c.filesChanged,
       diff:
-        c.diff.length > 3000
-          ? c.diff.substring(0, 3000) + "\n... [truncated]"
+        c.diff.length > 1000
+          ? c.diff.substring(0, 1000) + "\n... [truncated]"
           : c.diff,
     }));
 
-    const userPrompt = `Analyze the following commits from developer "${name}" (${email}):
+    const userPrompt = `You are analyzing commit diffs for one developer.
+
+Developer: "${name}" (${email || "unknown"})
+
+Here are their commits (JSON):
 
 ${JSON.stringify(commitSummaries, null, 2)}
 
-Respond with a JSON object in this exact format:
+Return ONLY a single JSON object with this exact structure, and nothing else:
+
 {
   "impactGPA": <number 0.0-4.0>,
   "archetype": "<one of: Architect, Surgeon, Janitor, Feature Factory, Firefighter, Coaster, Perfectionist, Rising Star>",
-  "assessment": "<one-line assessment, max 100 chars>",
+  "assessment": "<one-line assessment, max 200 chars>",
   "confidenceScore": <number 0-100>,
   "complexityScore": <number 0-100>,
   "deletionValue": <number 0-100>,
@@ -170,25 +380,55 @@ Respond with a JSON object in this exact format:
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: "gpt-4o",
+            model: "gpt-5-nano",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: userPrompt },
             ],
-            temperature: 0.3,
+            // JSON mode: forces the model to return valid JSON only
             response_format: { type: "json_object" },
+            // Reasoning effort is supported on GPT-5 models
+            reasoning_effort: "low",
           }),
         }
       );
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error(`OpenAI API error for ${name}:`, error);
+        const errorText = await response.text();
+        console.error(`OpenAI API error for ${name}:`, errorText);
         continue;
       }
 
       const data = await response.json();
-      const analysis = JSON.parse(data.choices[0].message.content);
+
+      // Handle both string and array forms of `message.content`
+      const rawContent = data?.choices?.[0]?.message?.content;
+
+      let contentText: string;
+      if (typeof rawContent === "string") {
+        contentText = rawContent;
+      } else if (Array.isArray(rawContent)) {
+        contentText = rawContent
+          .filter(
+            (part: any) => part.type === "text" && typeof part.text === "string"
+          )
+          .map((part: any) => part.text)
+          .join("");
+      } else {
+        console.error("Unexpected OpenAI content shape:", rawContent);
+        continue;
+      }
+
+      let analysis: any;
+      try {
+        analysis = JSON.parse(contentText);
+      } catch (parseErr) {
+        console.error("Failed to parse OpenAI JSON for", name, {
+          contentText,
+          parseErr,
+        });
+        continue;
+      }
 
       // Calculate totals
       const totalAdditions = authorCommits.reduce(
@@ -201,170 +441,22 @@ Respond with a JSON object in this exact format:
       );
 
       // Map archetype string to archetype info
-      const archetypeKey = analysis.archetype
+      const archetypeKey = (analysis.archetype || "Coaster")
         .toUpperCase()
         .replace(/\s+/g, "_");
       const archetypeInfo = ARCHETYPES[archetypeKey] || ARCHETYPES.COASTER;
 
       // Calculate strategic impact from component scores
       const strategicImpact = Math.round(
-        analysis.confidenceScore * 0.4 +
-          analysis.complexityScore * 0.35 +
-          analysis.deletionValue * 0.25
+        (analysis.confidenceScore || 0) * 0.4 +
+          (analysis.complexityScore || 0) * 0.35 +
+          (analysis.deletionValue || 0) * 0.25
       );
 
       assessments.push({
         name,
-        email,
-        impactGPA: Math.round(analysis.impactGPA * 100) / 100,
-        archetype: analysis.archetype,
-        archetypeInfo,
-        assessment: analysis.assessment,
-        commitCount: authorCommits.length,
-        totalAdditions,
-        totalDeletions,
-        netLinesChanged: totalAdditions - totalDeletions,
-        confidenceScore: analysis.confidenceScore,
-        complexityScore: analysis.complexityScore,
-        deletionValue: analysis.deletionValue,
-        strategicImpact,
-        commits: analysis.commits || [],
-      });
-    } catch (error) {
-      console.error(`Error analyzing commits for ${name}:`, error);
-    }
-  }
-
-  // Sort by impact GPA descending
-  return assessments.sort((a, b) => b.impactGPA - a.impactGPA);
-}
-
-// Function to analyze diffs using Anthropic Claude
-async function analyzeWithClaude(
-  commits: CommitDiff[]
-): Promise<DeveloperAssessment[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY environment variable is not set");
-  }
-
-  // Group commits by author
-  const commitsByAuthor = commits.reduce((acc, commit) => {
-    const key = commit.authorEmail || commit.author;
-    if (!acc[key]) {
-      acc[key] = {
-        name: commit.author,
-        email: commit.authorEmail,
-        commits: [],
-      };
-    }
-    acc[key].commits.push(commit);
-    return acc;
-  }, {} as Record<string, { name: string; email: string; commits: CommitDiff[] }>);
-
-  const assessments: DeveloperAssessment[] = [];
-
-  // Analyze each developer's commits
-  for (const [, authorData] of Object.entries(commitsByAuthor)) {
-    const { name, email, commits: authorCommits } = authorData;
-
-    // Prepare commit summaries for the AI (truncate large diffs)
-    const commitSummaries = authorCommits.map((c) => ({
-      sha: c.sha.substring(0, 7),
-      message: c.message,
-      date: c.date,
-      additions: c.additions,
-      deletions: c.deletions,
-      filesChanged: c.filesChanged,
-      diff:
-        c.diff.length > 3000
-          ? c.diff.substring(0, 3000) + "\n... [truncated]"
-          : c.diff,
-    }));
-
-    const userPrompt = `Analyze the following commits from developer "${name}" (${email}):
-
-${JSON.stringify(commitSummaries, null, 2)}
-
-Respond with a JSON object in this exact format (no markdown, just raw JSON):
-{
-  "impactGPA": <number 0.0-4.0>,
-  "archetype": "<one of: Architect, Surgeon, Janitor, Feature Factory, Firefighter, Coaster, Perfectionist, Rising Star>",
-  "assessment": "<one-line assessment, max 100 chars>",
-  "confidenceScore": <number 0-100>,
-  "complexityScore": <number 0-100>,
-  "deletionValue": <number 0-100>,
-  "commits": [
-    {
-      "sha": "<7-char sha>",
-      "grade": <number 0-100>,
-      "reasoning": "<brief reasoning>"
-    }
-  ]
-}`;
-
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 4096,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: userPrompt }],
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        console.error(`Claude API error for ${name}:`, error);
-        continue;
-      }
-
-      const data = await response.json();
-      const content = data.content[0].text;
-
-      // Extract JSON from the response (Claude might wrap it in markdown)
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error(`Could not parse JSON from Claude response for ${name}`);
-        continue;
-      }
-
-      const analysis = JSON.parse(jsonMatch[0]);
-
-      // Calculate totals
-      const totalAdditions = authorCommits.reduce(
-        (sum, c) => sum + c.additions,
-        0
-      );
-      const totalDeletions = authorCommits.reduce(
-        (sum, c) => sum + c.deletions,
-        0
-      );
-
-      // Map archetype string to archetype info
-      const archetypeKey = analysis.archetype
-        .toUpperCase()
-        .replace(/\s+/g, "_");
-      const archetypeInfo = ARCHETYPES[archetypeKey] || ARCHETYPES.COASTER;
-
-      // Calculate strategic impact from component scores
-      const strategicImpact = Math.round(
-        analysis.confidenceScore * 0.4 +
-          analysis.complexityScore * 0.35 +
-          analysis.deletionValue * 0.25
-      );
-
-      assessments.push({
-        name,
-        email,
-        impactGPA: Math.round(analysis.impactGPA * 100) / 100,
+        email: email || "",
+        impactGPA: Math.round((analysis.impactGPA || 0) * 100) / 100,
         archetype: analysis.archetype,
         archetypeInfo,
         assessment: analysis.assessment,
@@ -389,8 +481,7 @@ Respond with a JSON object in this exact format (no markdown, just raw JSON):
 
 // Main server action to analyze a repository
 export async function analyzeRepository(
-  commits: CommitDiff[],
-  provider: "openai" | "anthropic" = "openai"
+  commits: CommitDiff[]
 ): Promise<AnalysisResult> {
   try {
     if (!commits || commits.length === 0) {
@@ -400,13 +491,7 @@ export async function analyzeRepository(
       };
     }
 
-    let developers: DeveloperAssessment[];
-
-    if (provider === "anthropic") {
-      developers = await analyzeWithClaude(commits);
-    } else {
-      developers = await analyzeWithOpenAI(commits);
-    }
+    const developers = await analyzeWithOpenAI(commits);
 
     if (developers.length === 0) {
       return {

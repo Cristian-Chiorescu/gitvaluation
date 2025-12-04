@@ -26,9 +26,9 @@ export default function LandingPage() {
     if (!repoUrl.trim()) return;
 
     setIsAnalyzing(true);
-    // Simulate analysis delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    router.push("/dashboard");
+    // Navigate to dashboard with repo URL as query param
+    const encodedRepo = encodeURIComponent(repoUrl.trim());
+    router.push(`/dashboard?repo=${encodedRepo}`);
   };
 
   const features = [

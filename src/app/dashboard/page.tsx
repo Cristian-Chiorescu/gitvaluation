@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,8 +27,14 @@ import {
   TrendingUp,
   TrendingDown,
   MessageSquare,
+  Github,
+  AlertCircle,
 } from "lucide-react";
-import { analyzeMockRepository } from "@/app/actions";
+import {
+  fetchGitHubPRs,
+  analyzeRepository,
+  analyzeMockRepository,
+} from "@/app/actions";
 import {
   ARCHETYPES,
   type DeveloperAssessment,
@@ -236,40 +243,135 @@ function MiniReportCard({ gpa }: { gpa: number }) {
 }
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
+  const repoUrl = searchParams.get("repo");
+
   const [expandedContributor, setExpandedContributor] = useState<string | null>(
     null
   );
   const [sortBy, setSortBy] = useState<"gpa" | "risk" | "commits">("gpa");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState<string>("Initializing...");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
     null
   );
+  const [error, setError] = useState<string | null>(null);
+
+  // Ref to prevent double-fetching in React StrictMode
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent double-fetch in StrictMode
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
     async function loadAnalysis() {
       setIsLoading(true);
+      setError(null);
+
       try {
-        const result = await analyzeMockRepository();
-        setAnalysisResult(result);
-      } catch (error) {
-        console.error("Failed to load analysis:", error);
+        // If no repo URL provided, use mock data
+        if (!repoUrl) {
+          setLoadingStatus("Loading demo data...");
+          const result = await analyzeMockRepository();
+          setAnalysisResult(result);
+          return;
+        }
+
+        // Fetch real GitHub PRs
+        setLoadingStatus("Fetching PRs from GitHub...");
+        const githubResult = await fetchGitHubPRs(repoUrl);
+
+        if (!githubResult.success || !githubResult.commits) {
+          setError(githubResult.error || "Failed to fetch GitHub data");
+          return;
+        }
+
+        setLoadingStatus(
+          `Analyzing ${githubResult.commits.length} most recent PRs with AI. Will take a minute, grab a coffee...`
+        );
+
+        // Analyze the commits with OpenAI
+        const result = await analyzeRepository(githubResult.commits);
+
+        if (result.success) {
+          setAnalysisResult({
+            ...result,
+            repository: githubResult.repoName,
+          });
+        } else {
+          setError(result.error || "AI analysis failed");
+        }
+      } catch (err) {
+        console.error("Failed to load analysis:", err);
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred"
+        );
       } finally {
         setIsLoading(false);
       }
     }
     loadAnalysis();
-  }, []);
+  }, [repoUrl]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mx-auto animate-pulse">
-            <Brain className="w-8 h-8 text-white" />
+        <div className="fixed inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
+        <div className="fixed inset-0 bg-gradient-to-br from-emerald-950/10 via-transparent to-rose-950/5 pointer-events-none" />
+        <div className="relative text-center space-y-6">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/25">
+            <Brain className="w-10 h-10 text-white animate-pulse" />
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Analyzing repository with AI...</span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-center gap-2 text-foreground font-medium">
+              <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+              <span>{loadingStatus}</span>
+            </div>
+            {repoUrl && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Github className="w-4 h-4" />
+                <span>{decodeURIComponent(repoUrl)}</span>
+              </div>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground max-w-sm mx-auto">
+            Fetching recent PRs and analyzing code contributions with AI...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="fixed inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
+        <div className="relative text-center space-y-6 max-w-md mx-auto px-6">
+          <div className="w-20 h-20 rounded-2xl bg-rose-500/10 border-2 border-rose-500/30 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-10 h-10 text-rose-400" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-rose-400">Analysis Failed</h2>
+            <p className="text-muted-foreground">{error}</p>
+          </div>
+          {repoUrl && (
+            <div className="p-4 rounded-lg bg-card border border-border/50 text-left">
+              <div className="text-xs text-muted-foreground mb-1">
+                Repository
+              </div>
+              <div className="text-sm font-mono">
+                {decodeURIComponent(repoUrl)}
+              </div>
+            </div>
+          )}
+          <div className="flex items-center justify-center gap-3">
+            <Link href="/">
+              <Button variant="outline" className="gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Try Another Repo
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -279,13 +381,22 @@ export default function DashboardPage() {
   if (!analysisResult?.success || !analysisResult.developers) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="text-rose-400 text-lg">Analysis Failed</div>
-          <p className="text-muted-foreground">
-            {analysisResult?.error || "Unknown error"}
-          </p>
+        <div className="fixed inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
+        <div className="relative text-center space-y-6 max-w-md mx-auto px-6">
+          <div className="w-20 h-20 rounded-2xl bg-rose-500/10 border-2 border-rose-500/30 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-10 h-10 text-rose-400" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-rose-400">Analysis Failed</h2>
+            <p className="text-muted-foreground">
+              {analysisResult?.error || "Unknown error occurred"}
+            </p>
+          </div>
           <Link href="/">
-            <Button variant="outline">Go Back</Button>
+            <Button variant="outline" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Go Back
+            </Button>
           </Link>
         </div>
       </div>
@@ -357,6 +468,23 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {repoUrl ? (
+              <Badge
+                variant="outline"
+                className="text-emerald-400 border-emerald-500/30 gap-1"
+              >
+                <Github className="w-3 h-3" />
+                Live Data
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="text-amber-400 border-amber-500/30 gap-1"
+              >
+                <Activity className="w-3 h-3" />
+                Demo Mode
+              </Badge>
+            )}
             <Badge
               variant="outline"
               className="text-emerald-400 border-emerald-500/30 gap-1"
@@ -364,10 +492,22 @@ export default function DashboardPage() {
               <Brain className="w-3 h-3" />
               AI Powered
             </Badge>
-            <Button variant="outline" size="sm" className="gap-2">
+            {repoUrl && (
+              <a
+                href={decodeURIComponent(repoUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Github className="w-4 h-4" />
+                  View Repo
+                </Button>
+              </a>
+            )}
+            {/* <Button variant="outline" size="sm" className="gap-2">
               <ExternalLink className="w-4 h-4" />
               Export Report
-            </Button>
+            </Button> */}
           </div>
         </div>
       </header>
@@ -381,17 +521,22 @@ export default function DashboardPage() {
                 <h2 className="text-2xl font-bold">
                   {analysisResult.repository || "Repository Analysis"}
                 </h2>
-                <Badge
-                  variant="outline"
-                  className="text-emerald-400 border-emerald-500/30"
-                >
-                  TypeScript
-                </Badge>
+                {repoUrl && (
+                  <Badge
+                    variant="outline"
+                    className="text-purple-400 border-purple-500/30 gap-1"
+                  >
+                    <GitCommit className="w-3 h-3" />
+                    {analysisResult.totalCommits || 0} PRs
+                  </Badge>
+                )}
               </div>
               <p className="text-muted-foreground max-w-2xl">
                 AI-powered engineering assessment • Analyzed{" "}
-                {analysisResult.totalCommits || 0} commits across{" "}
-                {developers.length} contributors
+                {repoUrl
+                  ? `${analysisResult.totalCommits || 0} recent pull requests`
+                  : `${analysisResult.totalCommits || 0} commits`}{" "}
+                across {developers.length} contributors
               </p>
             </div>
             <div className="text-sm text-muted-foreground">
@@ -575,7 +720,7 @@ export default function DashboardPage() {
                       type="number"
                       dataKey="volume"
                       name="Lines Changed"
-                      domain={[0, "dataMax + 1000"]}
+                      domain={[0, "dataMax + 10"]}
                       tickFormatter={(v) =>
                         v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v
                       }
