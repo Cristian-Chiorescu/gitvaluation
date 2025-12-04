@@ -288,7 +288,7 @@ function DashboardContent() {
         }
 
         setLoadingStatus(
-          `Analyzing ${githubResult.commits.length} most recent PRs with AI. Will take a minute, grab a coffee...`
+          `Analyzing ${githubResult.commits.length} recent PRs with AI. Will take a minute, grab a coffee...`
         );
 
         // Analyze the commits with OpenAI
