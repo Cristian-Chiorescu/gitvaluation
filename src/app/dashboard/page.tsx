@@ -33,6 +33,18 @@ import {
   type DeveloperAssessment,
   type AnalysisResult,
 } from "@/lib/types";
+import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  Label,
+  Cell,
+} from "recharts";
 
 // GPA to Letter Grade conversion
 function getLetterGrade(gpa: number): string {
@@ -495,6 +507,254 @@ export default function DashboardPage() {
                     <span className="ml-2 text-muted-foreground">×{count}</span>
                   </Badge>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Impact vs Volume Scatter Plot */}
+        <section className="mb-8">
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <Target className="w-5 h-5 text-emerald-400" />
+                Impact vs. Volume Analysis
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Identify high-impact engineers vs. high-churn contributors
+              </p>
+            </CardHeader>
+            <CardContent>
+              {/* Chart with quadrant overlays */}
+              <div className="relative h-[500px] w-full">
+                {/* Quadrant labels positioned on the chart */}
+                {/* <div className="absolute top-12 left-16 z-10 pointer-events-none">
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2 backdrop-blur-sm">
+                    <div className="text-emerald-400 font-bold text-sm">
+                      🎯 The Snipers
+                    </div>
+                    <div className="text-emerald-400/70 text-[10px]">
+                      High Impact, Low Volume
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute top-12 right-16 z-10 pointer-events-none">
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg px-3 py-2 backdrop-blur-sm">
+                    <div className="text-blue-400 font-bold text-sm">
+                      💪 The Workhorses
+                    </div>
+                    <div className="text-blue-400/70 text-[10px]">
+                      High Impact, High Volume
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute bottom-16 left-16 z-10 pointer-events-none">
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 backdrop-blur-sm">
+                    <div className="text-amber-400 font-bold text-sm">
+                      😴 The Coasters
+                    </div>
+                    <div className="text-amber-400/70 text-[10px]">
+                      Low Impact, Low Volume
+                    </div>
+                  </div>
+                </div> */}
+                {/* <div className="absolute bottom-16 right-16 z-10 pointer-events-none">
+                  <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 backdrop-blur-sm">
+                    <div className="text-rose-400 font-bold text-sm">
+                      ⚠️ The Churners
+                    </div>
+                    <div className="text-rose-400/70 text-[10px]">
+                      Low Impact, High Volume
+                    </div>
+                  </div>
+                </div> */}
+
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart
+                    margin={{ top: 20, right: 30, bottom: 60, left: 60 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="0 0"
+                      stroke="rgba(255,255,255,0.0)"
+                    />
+                    <XAxis
+                      type="number"
+                      dataKey="volume"
+                      name="Lines Changed"
+                      domain={[0, "dataMax + 1000"]}
+                      tickFormatter={(v) =>
+                        v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v
+                      }
+                      tick={{ fill: "#a1a1aa", fontSize: 11 }}
+                      axisLine={{ stroke: "#3f3f46" }}
+                      tickLine={{ stroke: "#3f3f46" }}
+                      label={{
+                        value: "Volume (Lines Changed) →",
+                        position: "bottom",
+                        offset: 40,
+                        fill: "#a1a1aa",
+                        fontSize: 12,
+                      }}
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="gpa"
+                      name="Impact GPA"
+                      domain={[1, 4]}
+                      ticks={[1, 1.5, 2, 2.5, 3, 3.5, 4]}
+                      tickFormatter={(v) => v.toFixed(1)}
+                      tick={{ fill: "#a1a1aa", fontSize: 11 }}
+                      axisLine={{ stroke: "#3f3f46" }}
+                      tickLine={{ stroke: "#3f3f46" }}
+                      label={{
+                        value: "Impact GPA →",
+                        angle: -90,
+                        position: "left",
+                        offset: 40,
+                        fill: "#a1a1aa",
+                        fontSize: 12,
+                      }}
+                    />
+
+                    {/* Reference lines for quadrants */}
+                    <ReferenceLine
+                      x={(() => {
+                        const volumes = developers.map(
+                          (d) => d.totalAdditions + d.totalDeletions
+                        );
+                        return (
+                          volumes.reduce((a, b) => a + b, 0) / volumes.length
+                        );
+                      })()}
+                      stroke="#52525b"
+                      strokeDasharray="4 10"
+                      strokeWidth={1}
+                    />
+                    <ReferenceLine
+                      y={2.5}
+                      stroke="#52525b"
+                      strokeDasharray="4 10"
+                      strokeWidth={1}
+                    />
+
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload as {
+                            name: string;
+                            gpa: number;
+                            volume: number;
+                            assessment: string;
+                            archetype: string;
+                          };
+                          return (
+                            <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-2xl max-w-xs">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-bold text-white">
+                                  {data.name}
+                                </span>
+                                <span
+                                  className={`text-xs px-1.5 py-0.5 rounded font-bold ${getGradeBadgeBg(
+                                    data.gpa
+                                  )}`}
+                                >
+                                  {getLetterGrade(data.gpa)}
+                                </span>
+                              </div>
+                              <div className="text-xs text-zinc-400 mb-2">
+                                {data.archetype}
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+                                <div className="bg-zinc-800 rounded px-2 py-1">
+                                  <span className="text-zinc-500">GPA</span>
+                                  <div
+                                    className={`font-mono font-bold text-lg ${getGradeColor(
+                                      data.gpa
+                                    )}`}
+                                  >
+                                    {data.gpa.toFixed(2)}
+                                  </div>
+                                </div>
+                                <div className="bg-zinc-800 rounded px-2 py-1">
+                                  <span className="text-zinc-500">Lines</span>
+                                  <div className="font-mono font-bold text-lg text-white">
+                                    {data.volume.toLocaleString()}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-xs border-t border-zinc-700 pt-2">
+                                <div className="text-zinc-500 mb-1 flex items-center gap-1">
+                                  <Brain className="w-3 h-3" />
+                                  AI Assessment
+                                </div>
+                                <p className="text-zinc-300 italic leading-relaxed">
+                                  "{data.assessment}"
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+
+                    <Scatter
+                      name="Contributors"
+                      data={developers.map((d) => ({
+                        name: d.name,
+                        gpa: d.impactGPA,
+                        volume: d.totalAdditions + d.totalDeletions,
+                        assessment: d.assessment,
+                        archetype: d.archetype,
+                      }))}
+                    >
+                      {developers.map((d, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={
+                            d.impactGPA >= 3.3
+                              ? "#34d399"
+                              : d.impactGPA >= 2.3
+                              ? "#60a5fa"
+                              : d.impactGPA >= 1.3
+                              ? "#fbbf24"
+                              : "#fb7185"
+                          }
+                          stroke={
+                            d.impactGPA >= 3.3
+                              ? "#10b981"
+                              : d.impactGPA >= 2.3
+                              ? "#3b82f6"
+                              : d.impactGPA >= 1.3
+                              ? "#f59e0b"
+                              : "#f43f5e"
+                          }
+                          strokeWidth={2}
+                        />
+                      ))}
+                    </Scatter>
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center justify-center gap-6 mt-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                  <span className="text-zinc-400">A Grade (3.3+)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="text-zinc-400">B Grade (2.3-3.3)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-500" />
+                  <span className="text-zinc-400">C Grade (1.3-2.3)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-rose-500" />
+                  <span className="text-zinc-400">D/F Grade (&lt;1.3)</span>
+                </div>
               </div>
             </CardContent>
           </Card>
